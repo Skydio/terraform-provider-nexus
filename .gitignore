@@ -13,3 +13,4 @@ debug.test
 
 # nexus pro license file
 scripts/license.lic
+dist/

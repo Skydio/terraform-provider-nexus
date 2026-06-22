@@ -129,11 +129,22 @@ push_to_harbor() {
 	local tag="${PROVIDER_VERSION}"
 
 	echo "==> Pushing OCI artifact to ${repo}:${tag}"
+	# Build the file:mediatype list explicitly. Each terraform-mirror file becomes
+	# one OCI layer so consumers can `oras pull` the whole tree.
+	local push_args=()
+	while IFS= read -r -d '' f; do
+		local rel="${f#./}"
+		case "${rel}" in
+			*.zip)  push_args+=("${rel}:application/zip") ;;
+			*.json) push_args+=("${rel}:application/json") ;;
+			*)      push_args+=("${rel}:application/octet-stream") ;;
+		esac
+	done < <(cd "${DIST_DIR}/mirror" && find . -type f -print0)
+
 	(cd "${DIST_DIR}/mirror" && \
 		oras push "${repo}:${tag}" \
 			--artifact-type "application/vnd.skydio.terraform-provider-mirror.v1" \
-			$(find . -type f -printf "%P:application/zip\n" | grep '\.zip$') \
-			$(find . -type f -name '*.json' -printf "%P:application/json\n"))
+			"${push_args[@]}")
 
 	# Also tag as latest for convenience.
 	oras tag "${repo}:${tag}" latest
