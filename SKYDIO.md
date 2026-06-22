@@ -23,66 +23,63 @@ This fork adds:
 Both changes have been opened as PRs against their respective upstreams. Once
 merged + tagged, the `replace` directive can be removed.
 
-## Publishing to Harbor
+## Publishing to Nexus
 
-The provider is published to Harbor (`harbor.core.skyd.io`) as an OCI artifact
-that bundles a Terraform `network_mirror`-compatible directory tree.
+The provider is published to a Skydio-hosted Nexus raw repository
+(`https://nexus.skyd.io/repository/terraform-providers/`) in the layout that
+Terraform's [network_mirror protocol][network-mirror] expects. Because that
+protocol is plain HTTPS, consumers get the provider directly from Terraform's
+own provider installer — no `oras` / `docker` / extra tooling needed.
+
+[network-mirror]: https://developer.hashicorp.com/terraform/internals/provider-network-mirror-protocol
 
 ### One-time prerequisites
 
-- `oras` >= 1.0 (`go install oras.land/oras/cmd/oras@latest`)
 - `go` matching the version in `go.mod`
-- `zip`, `shasum` (standard on macOS / Linux)
-- Harbor credentials with push access to the `skyops` project
+- `zip`, `shasum`, `curl`, `jq` (standard on macOS / Linux)
+- A Nexus user token with write access to the `terraform-providers` repo.
+  Generate one at <https://nexus.skyd.io/#user/usertoken> and use the
+  `<name>:<passcode>` pair.
 
 ### Publish a new version
 
 ```bash
-export HARBOR_USER=<your harbor username>
-export HARBOR_PASS=<your harbor cli password / robot token>
+export NEXUS_USER=<your nexus user-token name>
+export NEXUS_PASS=<your nexus user-token passcode>
 export PROVIDER_VERSION=2.8.1-skydio.1   # bump as needed
 
-./scripts/publish-to-harbor.sh
+./scripts/publish-to-nexus.sh
 ```
 
 The script will:
 
-1. Build the provider for `linux_{amd64,arm64}` and `darwin_{amd64,arm64}`
-2. Zip each binary in the format Terraform expects
-3. Generate `index.json` and `<version>.json` mirror metadata
-4. Compute SHA-256 hashes for each archive
-5. Push the entire tree as a single OCI artifact:
-   `harbor.core.skyd.io/skyops/terraform-provider-nexus:<version>` (and
-   re-tag `:latest`)
+1. Build the provider for `linux_{amd64,arm64}` and `darwin_{amd64,arm64}`.
+2. Zip each binary in the format Terraform's mirror protocol expects.
+3. Fetch the existing `index.json` (if any) and merge in the new version, so
+   previously published versions remain reachable.
+4. Compute SHA-256 hashes for each archive and emit the per-version JSON.
+5. `PUT` everything to
+   `https://nexus.skyd.io/repository/terraform-providers/registry.terraform.io/skydio/nexus/`.
 
 ### Consuming from skyops
 
-In the Terraform module that manages Nexus:
-
-```bash
-# 1. Pull the artifact into a local mirror directory (run by Atlantis / CI)
-oras pull harbor.core.skyd.io/skyops/terraform-provider-nexus:2.8.1-skydio.1 \
-  --output /tmp/tf-nexus-mirror
-
-# 2. Configure Terraform to use it
-cat > .terraformrc <<'EOF'
-provider_installation {
-  filesystem_mirror {
-    path    = "/tmp/tf-nexus-mirror"
-    include = ["registry.terraform.io/skydio/nexus"]
-  }
-  direct {
-    exclude = ["registry.terraform.io/skydio/nexus"]
-  }
-}
-EOF
-
-export TF_CLI_CONFIG_FILE="$(pwd)/.terraformrc"
-```
-
-In `providers.tf`:
+Drop a `.terraformrc` in the directory whose `providers.tf` references this
+provider, and point Terraform at it via `TF_CLI_CONFIG_FILE`:
 
 ```hcl
+# .terraformrc
+provider_installation {
+  network_mirror {
+    url = "https://nexus.skyd.io/repository/terraform-providers/"
+  }
+  direct {
+    exclude = ["registry.terraform.io/skydio/*"]
+  }
+}
+```
+
+```hcl
+# providers.tf
 terraform {
   required_providers {
     nexus = {
@@ -93,17 +90,10 @@ terraform {
 }
 ```
 
-### Future: native OCI mirror (Terraform 1.10+)
+`terraform init` fetches the provider directly from Nexus over HTTPS. Atlantis
+already has network access to `nexus.skyd.io`, so no image rebuild or pre-init
+hook is required.
 
-Terraform 1.10 added a native `oci_mirror` block for `provider_installation`,
-which removes the need for the `oras pull` step. When skyops is on
-Terraform >= 1.10:
-
-```hcl
-provider_installation {
-  oci_mirror {
-    repository_template = "harbor.core.skyd.io/skyops/{namespace}/{type}"
-    include             = ["registry.terraform.io/skydio/*"]
-  }
-}
-```
+The repository declaration lives at
+[`terraform/nexus/terraform-providers/`](https://github.com/Skydio/skyops/tree/master/terraform/nexus/terraform-providers)
+in skyops.
