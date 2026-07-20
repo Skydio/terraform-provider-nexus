@@ -24,6 +24,17 @@ func DataSourceRepositoryPypiProxy() *schema.Resource {
 			"proxy":          repositorySchema.DataSourceProxy,
 			"routing_rule":   repositorySchema.DataSourceRoutingRule,
 			"storage":        repositorySchema.DataSourceStorage,
+			// PyPI proxy schemas
+			"index_path": {
+				Description: "Path appended to the remote URL for PyPI Simple API access.",
+				Computed:    true,
+				Type:        schema.TypeString,
+			},
+			"remove_quarantined": {
+				Description: "Whether quarantined versions are removed from the PyPI package metadata.",
+				Computed:    true,
+				Type:        schema.TypeBool,
+			},
 		},
 	}
 }
