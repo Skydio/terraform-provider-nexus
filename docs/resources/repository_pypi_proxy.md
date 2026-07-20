@@ -48,7 +48,9 @@ resource "nexus_repository_pypi_proxy" "pypi_org" {
 ### Optional
 
 - `cleanup` (Block List) Cleanup policies (see [below for nested schema](#nestedblock--cleanup))
+- `index_path` (String) Path appended to the remote URL for PyPI Simple API access. Defaults to "/simple" for standard PyPI repositories. Set to "" for indexes served at the remote root (e.g. download.pytorch.org, pypi.nvidia.com, pypi.fury.io).
 - `online` (Boolean) Whether this repository accepts incoming requests
+- `remove_quarantined` (Boolean) Remove quarantined versions from the PyPI package metadata.
 - `routing_rule` (String) The name of the routing rule assigned to this repository
 
 ### Read-Only

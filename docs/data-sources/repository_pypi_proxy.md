@@ -24,9 +24,11 @@ data "nexus_repository_pypi_proxy" "pypi_org" {
 - `cleanup` (List of Object) Cleanup policies (see [below for nested schema](#nestedatt--cleanup))
 - `http_client` (List of Object) HTTP Client configuration for proxy repositories (see [below for nested schema](#nestedatt--http_client))
 - `id` (String) Used to identify data source at nexus
+- `index_path` (String) Path appended to the remote URL for PyPI Simple API access.
 - `negative_cache` (List of Object) Configuration of the negative cache handling (see [below for nested schema](#nestedatt--negative_cache))
 - `online` (Boolean) Whether this repository accepts incoming requests
 - `proxy` (List of Object) Configuration for the proxy repository (see [below for nested schema](#nestedatt--proxy))
+- `remove_quarantined` (Boolean) Whether quarantined versions are removed from the PyPI package metadata.
 - `routing_rule` (String) The name of the routing rule assigned to this repository
 - `storage` (List of Object) The storage configuration of the repository (see [below for nested schema](#nestedatt--storage))
 

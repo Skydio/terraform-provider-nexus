@@ -34,6 +34,19 @@ func ResourceRepositoryPypiProxy() *schema.Resource {
 			"proxy":          repositorySchema.ResourceProxy,
 			"routing_rule":   repositorySchema.ResourceRoutingRule,
 			"storage":        repositorySchema.ResourceStorage,
+			// PyPI proxy schemas
+			"index_path": {
+				Description: "Path appended to the remote URL for PyPI Simple API access. Defaults to \"/simple\" for standard PyPI repositories. Set to \"\" for indexes served at the remote root (e.g. download.pytorch.org, pypi.nvidia.com, pypi.fury.io).",
+				Optional:    true,
+				Default:     "/simple",
+				Type:        schema.TypeString,
+			},
+			"remove_quarantined": {
+				Description: "Remove quarantined versions from the PyPI package metadata.",
+				Optional:    true,
+				Default:     false,
+				Type:        schema.TypeBool,
+			},
 		},
 	}
 }
@@ -63,6 +76,10 @@ func getPypiProxyRepositoryFromResourceData(resourceData *schema.ResourceData) r
 			ContentMaxAge:  proxyConfig["content_max_age"].(int),
 			MetadataMaxAge: proxyConfig["metadata_max_age"].(int),
 			RemoteURL:      proxyConfig["remote_url"].(string),
+		},
+		Pypi: &repository.Pypi{
+			IndexPath:         resourceData.Get("index_path").(string),
+			RemoveQuarantined: resourceData.Get("remove_quarantined").(bool),
 		},
 	}
 
@@ -139,6 +156,11 @@ func setPypiProxyRepositoryToResourceData(repo *repository.PypiProxyRepository, 
 		if err := resourceData.Set("cleanup", flattenCleanup(repo.Cleanup)); err != nil {
 			return err
 		}
+	}
+
+	if repo.Pypi != nil {
+		resourceData.Set("index_path", repo.Pypi.IndexPath)
+		resourceData.Set("remove_quarantined", repo.Pypi.RemoveQuarantined)
 	}
 	return nil
 }
