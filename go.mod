@@ -253,4 +253,4 @@ require (
 	mvdan.cc/unparam v0.0.0-20240528143540-8a5130ca722f // indirect
 )
 
-replace github.com/datadrivers/go-nexus-client => github.com/Skydio/go-nexus-client v0.0.0-20260720195204-a1c69078954e
+replace github.com/datadrivers/go-nexus-client => github.com/Skydio/go-nexus-client v0.0.0-20261002221800-55e465f06dae
