@@ -1,6 +1,10 @@
 package acceptance
 
 const (
+	TemplateStringRepositoryGoHosted = `
+resource "nexus_repository_go_hosted" "acceptance" {
+` + TemplateStringHostedRepository
+
 	TemplateStringRepositoryGoGroup = `
 resource "nexus_repository_go_group" "acceptance" {
 	depends_on = [
