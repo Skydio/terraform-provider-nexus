@@ -92,6 +92,7 @@ func Provider() *schema.Provider {
 			"nexus_blobstore_s3":                          blobstore.ResourceBlobstoreS3(),
 			"nexus_capability":                            other.ResourceCapability(),
 			"nexus_iqserver":                              other.ResourceIQServer(),
+			"nexus_task":                                  other.ResourceTask(),
 			"nexus_repository_alpine_proxy":               repository.ResourceRepositoryAlpineProxy(),
 			"nexus_repository_apt_hosted":                 repository.ResourceRepositoryAptHosted(),
 			"nexus_repository_apt_proxy":                  repository.ResourceRepositoryAptProxy(),
