@@ -7,7 +7,6 @@ import (
 	nexus "github.com/datadrivers/go-nexus-client/nexus3"
 	"github.com/datadrivers/go-nexus-client/nexus3/schema/task"
 	"github.com/datadrivers/terraform-provider-nexus/internal/schema/common"
-	"github.com/datadrivers/terraform-provider-nexus/internal/tools"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -85,12 +84,12 @@ func ResourceTask() *schema.Resource {
 							Optional:    true,
 						},
 						"start_date": {
-							Description: "Start date for the schedule (Unix timestamp in milliseconds).",
+							Description: "Start date for the schedule, sent as-is on create and update. Not read back: the server sets its own start date.",
 							Type:        schema.TypeInt,
 							Optional:    true,
 						},
 						"time_zone_offset": {
-							Description: "Time zone offset (e.g., '-08:00').",
+							Description: "Time zone offset (e.g., '-08:00'). Not read back: the server sets its own (e.g. 'Z').",
 							Type:        schema.TypeString,
 							Optional:    true,
 						},
@@ -194,29 +193,39 @@ func setTaskToResourceData(t *task.Task, d *schema.ResourceData) error {
 	d.Set("next_run", t.NextRun)
 	d.Set("last_run_result", t.LastRunResult)
 
-	if t.Frequency != nil {
-		// Normalize "advanced" schedule to "cron" to prevent perpetual drift
-		schedule := t.Frequency.Schedule
+	// GET returns the schedule flat on the task (Schedule, CronExpression,
+	// ...), not nested under "frequency" as on create.
+	schedule := t.Schedule
+	if schedule == "" && t.Frequency != nil {
+		schedule = t.Frequency.Schedule
+	}
+	if schedule != "" {
+		// A "cron" schedule reads back as "advanced"; store it as written.
 		if strings.EqualFold(schedule, "advanced") {
 			schedule = "cron"
 		}
-
 		freq := map[string]interface{}{
-			"schedule": schedule,
+			"schedule": strings.ToLower(schedule),
 		}
-		if t.Frequency.CronExpression != "" {
-			freq["cron_expression"] = t.Frequency.CronExpression
+		if t.CronExpression != "" {
+			freq["cron_expression"] = t.CronExpression
 		}
-		if t.Frequency.StartDate != 0 {
-			freq["start_date"] = t.Frequency.StartDate
+		if len(t.RecurringDays) > 0 {
+			freq["recurring_days"] = t.RecurringDays
 		}
-		if t.Frequency.TimeZoneOffset != "" {
-			freq["time_zone_offset"] = t.Frequency.TimeZoneOffset
+		// The server fills in startDate (an ISO-8601 string) and
+		// timeZoneOffset on its own even when they weren't sent, so reading
+		// them back would show a diff on every plan. Keep what the
+		// configuration set.
+		if v, ok := d.GetOk("frequency.0.start_date"); ok {
+			freq["start_date"] = v
 		}
-		if len(t.Frequency.RecurringDays) > 0 {
-			freq["recurring_days"] = t.Frequency.RecurringDays
+		if v, ok := d.GetOk("frequency.0.time_zone_offset"); ok {
+			freq["time_zone_offset"] = v
 		}
-		d.Set("frequency", []interface{}{freq})
+		if err := d.Set("frequency", []interface{}{freq}); err != nil {
+			return err
+		}
 	}
 
 	if t.Properties != nil {
