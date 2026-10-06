@@ -1,0 +1,22 @@
+{
+    "id": "ac6e3877-01f6-4809-a826-31af110013ee",
+    "name": "Compact all blob stores daily (skyops#10062)",
+    "type": "blobstore.compact",
+    "message": null,
+    "currentState": "WAITING",
+    "lastRunResult": null,
+    "nextRun": "2026-10-05T04:15:00.000+00:00",
+    "lastRun": null,
+    "schedule": "advanced",
+    "properties": {
+        "blobstoreName": "(All Blob Stores)",
+        "blobsOlderThan": "3"
+    },
+    "enabled": true,
+    "alertEmail": null,
+    "notificationCondition": "FAILURE",
+    "startDate": "2026-10-04T12:25:39.787+00:00",
+    "recurringDays": null,
+    "cronExpression": "0 15 4 * * ?",
+    "timeZoneOffset": "Z"
+}
