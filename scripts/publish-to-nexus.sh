@@ -49,6 +49,8 @@ require_cmd() {
 require_cmd go
 require_cmd zip
 require_cmd shasum
+require_cmd openssl
+require_cmd base64
 require_cmd curl
 require_cmd jq
 
@@ -100,14 +102,30 @@ generate_metadata() {
 	local archives_obj='{}'
 	for platform in "${PLATFORMS[@]}"; do
 		local zip_name="${PROVIDER_NAME}_${PROVIDER_VERSION}_${platform}.zip"
-		local sha
-		sha=$(shasum -a 256 "${DIST_DIR}/${zip_name}" | awk '{print $1}')
+		local goos="${platform%_*}"
+		local binary="${PROVIDER_NAME}_v${PROVIDER_VERSION}"
+		[[ "${goos}" == "windows" ]] && binary="${binary}.exe"
+
+		# Terraform's network-mirror protocol requires the "h1:" dirhash
+		# format (a hash of the zip's extracted contents, same algorithm as
+		# go.sum entries) -- NOT a plain checksum of the zip file's bytes.
+		# A plain checksum is rejected outright ("this version of Terraform
+		# does not support any of the checksum formats given for this
+		# provider"). Each zip here contains exactly one file (the binary),
+		# so the general dirhash algorithm collapses to: hash the file,
+		# format that as the single line "<hex>  <entry-name>\n" dirhash
+		# would produce for a one-file archive, hash *that* line, and
+		# base64-encode the raw digest.
+		local file_hash h1
+		file_hash=$(shasum -a 256 "${DIST_DIR}/${platform}/${binary}" | awk '{print $1}')
+		h1="h1:$(printf '%s  %s\n' "${file_hash}" "${binary}" | openssl dgst -sha256 -binary | base64)"
+
 		archives_obj=$(jq -n \
 			--argjson existing "${archives_obj}" \
 			--arg platform "${platform}" \
 			--arg url "${zip_name}" \
-			--arg sha "sha256:${sha}" \
-			'$existing + {($platform): {"url": $url, "hashes": [$sha]}}')
+			--arg h1 "${h1}" \
+			'$existing + {($platform): {"url": $url, "hashes": [$h1]}}')
 	done
 	jq -n --argjson archives "${archives_obj}" '{archives: $archives}' \
 		> "${version_json}"
