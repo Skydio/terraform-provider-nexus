@@ -1,0 +1,22 @@
+{
+    "id": "7b6fb02c-283a-49a2-ba4f-24e9a8b59384",
+    "name": "Admin - Compact blob store",
+    "type": "blobstore.compact",
+    "message": "Compacting all blob stores",
+    "currentState": "WAITING",
+    "lastRunResult": "OK",
+    "nextRun": "2026-10-05T03:48:00.000+00:00",
+    "lastRun": "2026-10-04T03:48:00.064+00:00",
+    "schedule": "daily",
+    "properties": {
+        "blobstoreName": "(All Blob Stores)",
+        "blobsOlderThan": "3"
+    },
+    "enabled": true,
+    "alertEmail": null,
+    "notificationCondition": "FAILURE",
+    "startDate": "2026-05-09T03:48:00.000+00:00",
+    "recurringDays": null,
+    "cronExpression": null,
+    "timeZoneOffset": null
+}
