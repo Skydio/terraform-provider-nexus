@@ -20,6 +20,12 @@ This fork adds:
   via a `replace` directive in `go.mod` (the underlying Go client also lacks
   Alpine support upstream)
 
+- `nexus_repository_go_hosted` resource and data source
+- A cherry-pick of upstream [18411f7](https://github.com/datadrivers/terraform-provider-nexus/commit/18411f765ad83fda05594156e7262b9d4ddbec29)
+  (`2.8.2-skydio.3`): Nexus 3.94+ omits the `npm` sub-object when reading an npm
+  proxy repository, which made `nexus_repository_npm_proxy` panic on refresh.
+  Upstream ships it in v3.0.0; drop it from this list once the fork rebases.
+
 Both changes have been opened as PRs against their respective upstreams. Once
 merged + tagged, the `replace` directive can be removed.
 
